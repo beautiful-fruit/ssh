@@ -1,0 +1,7 @@
+{
+    "SleepSleepHistory": {
+        "path": "cogs.ssh",
+        "description": "Sleep Sleep History",
+        "load_on_start": true
+    }
+}
