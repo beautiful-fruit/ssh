@@ -2,6 +2,7 @@ from aiofiles import open as async_open
 from discord import ApplicationContext, Bot, Option, SlashCommandGroup
 from orjson import loads
 
+from subprocess import run, PIPE
 from config import MANAGERS
 
 from .base import GroupCog
@@ -139,6 +140,21 @@ class System(GroupCog):
             await ctx.respond(f"`{cog_name}` unloaded successfully.")
         elif cog_name in self.all_cogs: await ctx.respond(f"Unload failed, `{cog_name}` not loaded.")
         else: await ctx.respond(f"Unload failed, `{cog_name}` not found.")
+
+    @group.command(
+        name="fetch",
+        description="fetch update from github"
+    )
+    async def fetch_update(
+        self,
+        ctx: ApplicationContext,
+    ):
+        async def update():
+            r = await self.bot.loop.run_in_executor(None, lambda: run(["git", "pull"], stdout=PIPE))
+            r.stdout.decode()
+            await resp.edit("Output:\n```\n" + r.stdout.decode() + "\n```")
+        resp = await ctx.respond("Update...")
+        await update()
 
 
 def setup(bot: Bot):
