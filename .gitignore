@@ -161,4 +161,6 @@ cython_debug/
 
 config.json
 data
+*~
+test*
 

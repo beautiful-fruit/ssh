@@ -198,6 +198,43 @@ class SleepSleepHistory(GroupCog):
         embed.set_thumbnail(url=avatar.url)
         await ctx.respond(embed=embed)
 
+    @group.command(
+        name="current",
+        description="查看現在是哪一天。",
+        checks=[check_signed(sign_up)]
+    )
+    async def current(
+        self,
+        ctx: ApplicationContext
+    ):
+        async with async_open(get_user_file(ctx), "rb") as record_file:
+            data = loads(await record_file.read())
+        data: list[SSHData] = list(map(lambda d: SSHData(**d), data))
+        last_data = data[-1]
+
+        delta = datetime.utcnow() - datetime.fromtimestamp(last_data.timestamp)
+        total_seconds = int(delta.total_seconds())
+        hours = str(total_seconds // 3600).zfill(2)
+        minutes = str((total_seconds % 3600) // 60).zfill(2)
+        seconds = str(total_seconds % 60).zfill(2)
+
+        embed = Embed(
+            colour=0x51a8dd,
+            description="" if last_data.type == "SLEEP" else f"現在是 {last_data.year}年 {last_data.month} 月 {last_data.day} 日 {hours}:{minutes}:{seconds}",
+            timestamp=datetime.now(timezone.utc)
+        )
+        if last_data.type == "SLEEP":
+            embed.title = "你正在等待明天的到來"
+            embed.description = "\n".join([
+                f"你離開 {last_data.year}年 {last_data.month} 月 {last_data.day} 日 已有 {hours} 時 {minutes} 分 {seconds} 秒之久。"
+            ])
+        else:
+            embed.title = "你仍未離開今天"
+            embed.description = f"現在是 {last_data.year}年 {last_data.month} 月 {last_data.day} 日 {hours} 時 {minutes} 分 {seconds} 秒。"
+        avatar = ctx.author.avatar or ctx.author.default_avatar
+        embed.set_thumbnail(url=avatar.url)
+
+        await ctx.respond(embed=embed)
 
 def setup(bot: Bot):
     bot.add_cog(SleepSleepHistory(bot))
