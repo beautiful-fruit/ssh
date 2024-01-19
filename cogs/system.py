@@ -152,7 +152,7 @@ class System(GroupCog):
         async def update():
             r = await self.bot.loop.run_in_executor(None, lambda: run(["git", "pull"], stdout=PIPE))
             r.stdout.decode()
-            await resp.edit("Output:\n```\n" + r.stdout.decode() + "\n```")
+            await resp.message.edit("Output:\n```\n" + r.stdout.decode() + "\n```")
         resp = await ctx.respond("Update...")
         await update()
 
