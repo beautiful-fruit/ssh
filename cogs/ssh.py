@@ -105,7 +105,8 @@ async def write_user_data(ctx: ApplicationContext, data: list[SSHData]) -> None:
 
 
 def rebuild(data: list[SSHData]) -> list[SSHData]:
-    if len(data) == 0: return []
+    if len(data) == 0:
+        return []
     data.sort(key=lambda d: d.timestamp)
     day = 1
     month = 1
@@ -126,6 +127,7 @@ def rebuild(data: list[SSHData]) -> list[SSHData]:
             day = 1
             month += 1
     return data
+
 
 def format_delta_time(delta: int) -> tuple[str, str, str]:
     return (
@@ -149,7 +151,7 @@ def generate_embed(
     color: Union[int, COLOR_TYPE],
     title: str,
     description: str = "",
-    footer: Optional[str] = None,
+    fields: Optional[dict[str, str]] = {},
 ) -> Embed:
     embed = Embed(
         colour=color if type(color) == int else COLOR_MAP.get(color, 0),
@@ -158,8 +160,8 @@ def generate_embed(
         timestamp=datetime.now(timezone.utc)
     )
     embed.set_thumbnail(url=ctx.author.display_avatar.url)
-    if footer is not None:
-        embed.set_footer(text=footer)
+    for key, value in fields.items():
+        embed.add_field(name=key, value=value, inline=False)
     return embed
 
 
@@ -201,6 +203,7 @@ async def get_utc_datetime(
             ))
             return None
     return utc_datetime
+
 
 class SleepSleepHistory(GroupCog):
     group = SlashCommandGroup(
@@ -250,7 +253,8 @@ class SleepSleepHistory(GroupCog):
             date_=date_,
             timezone_=timezone_
         )
-        if utc_datetime is None: return
+        if utc_datetime is None:
+            return
         time_delta = utc_datetime - latest_datetime
         hours, minutes, seconds = format_delta_time(
             int(time_delta.total_seconds()))
@@ -281,7 +285,9 @@ class SleepSleepHistory(GroupCog):
             color="WAKE_UP",
             title=choice(RESPONSE_MESSAGE["WAKE_UP"]),
             description=f"今天是你的 {YEARS[-1]} 年 {n_month} 月 {n_day} 日，你的昨天已離去 {hours} 小時 {minutes} 分 {seconds} 秒之久。",
-            footer=f"紀錄時間 <t:{int((utc_datetime + timedelta(hours=timezone_)).timestamp())}:F>",
+            fields={
+                "紀錄時間": f"<t:{int((utc_datetime + timedelta(hours=timezone_)).timestamp())}:F>"
+            },
         ))
 
     @group.command(
@@ -306,7 +312,8 @@ class SleepSleepHistory(GroupCog):
             date_=date_,
             timezone_=timezone_
         )
-        if utc_datetime is None: return
+        if utc_datetime is None:
+            return
         time_delta = utc_datetime - latest_datetime
         hours, minutes, seconds = format_delta_time(
             int(time_delta.total_seconds()))
@@ -333,7 +340,9 @@ class SleepSleepHistory(GroupCog):
             color="SLEEP",
             title=choice(RESPONSE_MESSAGE["SLEEP"]),
             description=f"你結束了你的 {latest.year}年 {latest.month} 月 {latest.day} 日，共 {hours} 小時 {minutes} 分 {seconds} 秒。",
-            footer=f"紀錄時間 <t:{int((utc_datetime + timedelta(hours=timezone_)).timestamp())}:F>",
+            fields={
+                "紀錄時間": f"<t:{int((utc_datetime + timedelta(hours=timezone_)).timestamp())}:F>"
+            },
         ))
 
     # @group.command(
