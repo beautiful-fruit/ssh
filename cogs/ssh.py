@@ -173,6 +173,7 @@ class SleepSleepHistory(GroupCog):
                 title=choice(RESPONSE_MESSAGE["ALREADY_WAKE_UP"]),
                 description=f"你在 {hours} 小時 {minutes} 分 {seconds} 秒前就起床了。"
             ))
+            return
 
         n_month = latest.month if latest.year == YEARS[-1] else 1
         n_day = latest.day + 1 if latest.year == YEARS[-1] else 1
