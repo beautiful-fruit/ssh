@@ -274,10 +274,10 @@ class SleepSleepHistory(GroupCog):
     async def insert(
         self,
         ctx: ApplicationContext,
-        start_date: Option(str, name="起始日期", description="起床時的日期 格式為YYYY-MM-DD", required=False),
         start_time: Option(str, name="起始時間", description="起床時的時間 格式為HH:MM:SS", required=True),
-        end_date: Option(str, name="結束日期", description="睡覺時的日期 格式為YYYY-MM-DD", required=False),
         end_time: Option(str, name="結束時間", description="睡覺時的時間 格式為HH:MM:SS", required=True),
+        start_date: Option(str, name="起始日期", description="起床時的日期 格式為YYYY-MM-DD", required=False),
+        end_date: Option(str, name="結束日期", description="睡覺時的日期 格式為YYYY-MM-DD", required=False),
         time_zone: Option(float, name="時區", description="時區", default=8, min_value=12, max_value=12)
     ):
         try:
