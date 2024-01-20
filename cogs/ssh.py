@@ -3,6 +3,7 @@ from discord import (
     ApplicationContext,
     Bot,
     Embed,
+    File,
     SlashCommand,
     SlashCommandGroup
 )
@@ -120,8 +121,7 @@ def generate_embed(
         description=description,
         timestamp=datetime.now(timezone.utc)
     )
-    avatar = ctx.author.avatar or ctx.author.default_avatar
-    embed.set_thumbnail(url=avatar.url)
+    embed.set_thumbnail(url=ctx.author.display_avatar.url)
     return embed
 
 
@@ -154,7 +154,7 @@ class SleepSleepHistory(GroupCog):
     @group.command(
         name="ohiyo",
         description="開始新的一天。",
-        checks=[check_signed(sign_up)]
+        checks=[check_signed(sign_up)],
     )
     async def ohiyo(
         self,
@@ -196,7 +196,7 @@ class SleepSleepHistory(GroupCog):
     @group.command(
         name="oyasumi",
         description="登出舊的一天。",
-        checks=[check_signed(sign_up)]
+        checks=[check_signed(sign_up)],
     )
     async def oyasumi(
         self,
@@ -234,7 +234,7 @@ class SleepSleepHistory(GroupCog):
     @group.command(
         name="current",
         description="查看現在是哪一天。",
-        checks=[check_signed(sign_up)]
+        checks=[check_signed(sign_up)],
     )
     async def current(
         self,
@@ -265,7 +265,7 @@ class SleepSleepHistory(GroupCog):
     @group.command(
         name="cancel",
         description="取消上一筆紀錄。",
-        checks=[check_signed(sign_up)]
+        checks=[check_signed(sign_up)],
     )
     async def cancel(
         self,
@@ -278,6 +278,20 @@ class SleepSleepHistory(GroupCog):
             color="INFO",
             title="已取消上一筆紀錄",
         ))
+
+    @group.command(
+        name="dump",
+        description="取得自己的紀錄檔",
+        checks=[check_signed(sign_up)],
+    )
+    async def dump(
+        self,
+        ctx: ApplicationContext
+    ):
+        file_path = get_user_file(ctx)
+        async with async_open(file_path, "rb") as f:
+            context = await f.read()
+        await ctx.respond(file=File(context, f"{ctx.author.display_name}.json"))
 
 
 def setup(bot: Bot):
