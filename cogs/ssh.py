@@ -159,7 +159,7 @@ def generate_embed(
     )
     embed.set_thumbnail(url=ctx.author.display_avatar.url)
     if footer is not None:
-        embed.set_footer(footer)
+        embed.set_footer(text=footer)
     return embed
 
 
