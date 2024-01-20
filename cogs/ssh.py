@@ -291,6 +291,7 @@ class SleepSleepHistory(GroupCog):
             start_datetime = datetime.combine(start_date, start_time) - time_delta
             end_datetime = datetime.combine(end_date, end_time) - time_delta
             assert end_datetime > start_datetime
+            assert end_datetime < now_time
 
             data = await read_user_data(ctx)
             data.append(SSHData(
