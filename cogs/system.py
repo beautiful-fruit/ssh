@@ -156,6 +156,18 @@ class System(GroupCog):
         resp = await ctx.respond("Update...")
         await update()
 
+    @group.command(
+        name="restart",
+        description="restart bot"
+    )
+    async def restart(
+        self,
+        ctx: ApplicationContext
+    ):
+        run(["cmd", "/c", "start start.cmd"])
+        await ctx.respond("Restart...")
+        exit(0)
+
 
 def setup(bot: Bot):
     bot.add_cog(System(bot=bot))
