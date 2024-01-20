@@ -304,6 +304,11 @@ class SleepSleepHistory(GroupCog):
             ))
             data = rebuild(data)
             await write_user_data(ctx=ctx, data=data)
+            await ctx.respond(embed=generate_embed(
+                ctx=ctx,
+                color="INFO",
+                title="新增成功",
+            ))
         except:
             await ctx.respond(embed=generate_embed(
                 ctx=ctx,
