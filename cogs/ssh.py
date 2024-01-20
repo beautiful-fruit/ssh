@@ -4,13 +4,20 @@ from discord import (
     Bot,
     Embed,
     File,
+    Option,
     SlashCommand,
-    SlashCommandGroup
+    SlashCommandGroup,
 )
 from orjson import dumps, loads, OPT_INDENT_2
 from pydantic import BaseModel, Field
 
-from datetime import datetime, timezone
+from datetime import (
+    date,
+    datetime,
+    time,
+    timedelta,
+    timezone,
+)
 from io import BytesIO
 from os.path import isfile, join
 from random import choice
@@ -20,7 +27,11 @@ from config import DATA_DIR
 
 from .base import GroupCog
 
-YEARS = ["元"]
+YEAR_DATA = {
+    "元": 1704038400
+}
+YEARS = list(YEAR_DATA.keys())
+YEARS.sort(key=lambda k: YEAR_DATA[k])
 FBNC = [0, 1, 1]
 COLOR_MAP = {
     "SIGN_UP": 0xDC9FB4,  # https://nipponcolors.com/#nadeshiko
@@ -92,6 +103,29 @@ async def write_user_data(ctx: ApplicationContext, data: list[SSHData]) -> None:
             option=OPT_INDENT_2
         ))
 
+
+def rebuild(data: list[SSHData]) -> list[SSHData]:
+    if len(data) == 0: return []
+    data.sort(key=lambda d: d.timestamp)
+    day = 1
+    month = 1
+    year_index = YEARS.index(data[0].year)
+    for i in range(len(data)):
+        data[i].day = day
+        data[i].month = month
+        data[i].year = YEARS[year_index]
+        if data[i].type == "WAKE_UP":
+            if year_index + 1 >= len(YEARS):
+                continue
+            if data[i].timestamp >= YEAR_DATA[YEARS[year_index + 1]]:
+                year_index += 1
+                data[i].year = YEARS[year_index]
+            continue
+        day += 1
+        if day > get_fbnc_num(month):
+            day = 1
+            month += 1
+    return data
 
 def format_delta_time(delta: int) -> tuple[str, str, str]:
     return (
@@ -231,6 +265,51 @@ class SleepSleepHistory(GroupCog):
             title=choice(RESPONSE_MESSAGE["SLEEP"]),
             description=f"你結束了你的 {latest.year}年 {latest.month} 月 {latest.day} 日，共 {hours} 小時 {minutes} 分 {seconds} 秒。"
         ))
+
+    @group.command(
+        name="insert",
+        description="登出舊的一天。",
+        checks=[check_signed(sign_up)],
+    )
+    async def insert(
+        self,
+        ctx: ApplicationContext,
+        start_date: Option(str, name="起始日期", description="起床時的日期 格式為YYYY-MM-DD", required=False),
+        start_time: Option(str, name="起始時間", description="起床時的時間 格式為HH:MM:SS", required=True),
+        end_date: Option(str, name="結束日期", description="睡覺時的日期 格式為YYYY-MM-DD", required=False),
+        end_time: Option(str, name="結束時間", description="睡覺時的時間 格式為HH:MM:SS", required=True),
+        time_zone: Option(float, name="時區", description="時區", default=8, min_value=12, max_value=12)
+    ):
+        try:
+            now_time = datetime.now()
+            start_date = now_time.date() if start_date is None else date.fromisoformat(start_date)
+            start_time = time.fromisoformat(start_time)
+            end_date = now_time.date() if end_date is None else date.fromisoformat(end_date)
+            end_time = time.fromisoformat(end_time)
+            time_delta = timedelta(hours=time_zone)
+
+            start_datetime = datetime.combine(start_date, start_time) - time_delta
+            end_datetime = datetime.combine(end_date, end_time) - time_delta
+            assert end_datetime > start_datetime
+
+            data = await read_user_data(ctx)
+            data.append(SSHData(
+                type="WAKE_UP",
+                timestamp=int(start_datetime.timestamp())
+            ))
+            data.append(SSHData(
+                type="SLEEP",
+                timestamp=int(end_datetime.timestamp())
+            ))
+            data = rebuild(data)
+            await write_user_data(ctx=ctx, data=data)
+        except:
+            await ctx.respond(embed=generate_embed(
+                ctx=ctx,
+                color="WARN",
+                title="格式錯誤",
+                description="輸入格式錯誤，請重新檢查。"
+            ))
 
     @group.command(
         name="current",
