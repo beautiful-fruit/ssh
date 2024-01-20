@@ -11,6 +11,7 @@ from orjson import dumps, loads, OPT_INDENT_2
 from pydantic import BaseModel, Field
 
 from datetime import datetime, timezone
+from io import BytesIO
 from os.path import isfile, join
 from random import choice
 from typing import Literal, Union
@@ -291,7 +292,7 @@ class SleepSleepHistory(GroupCog):
         file_path = get_user_file(ctx)
         async with async_open(file_path, "rb") as f:
             context = await f.read()
-        await ctx.respond(file=File(context, f"{ctx.author.display_name}.json"))
+        await ctx.respond(file=File(BytesIO(context), f"{ctx.author.display_name}.json"))
 
 
 def setup(bot: Bot):
