@@ -21,7 +21,7 @@ from datetime import (
 from io import BytesIO
 from os.path import isfile, join
 from random import choice
-from typing import Literal, Union
+from typing import Literal, Optional, Union
 
 from config import DATA_DIR
 
@@ -160,6 +160,45 @@ def generate_embed(
     return embed
 
 
+async def get_utc_datetime(
+    ctx: ApplicationContext,
+    latest_datetime: datetime,
+    time_: Optional[str] = None,
+    date_: Optional[str] = None,
+    timezone_: float = 8,
+) -> Optional[datetime]:
+    if time_ is None:
+        utc_datetime = datetime.utcnow()
+    else:
+        try:
+            time_ = time.fromisoformat(time_)
+            date_ = datetime.now().date() if date_ is None else date.fromisoformat(date_)
+        except:
+            await ctx.respond(embed=generate_embed(
+                ctx=ctx,
+                color="WARN",
+                title="輸入時間格式錯誤",
+                description="請重新檢查時間輸入是否符合格式"
+            ))
+            return None
+        datetime_ = datetime.combine(date_, time_)
+        utc_datetime = datetime_ - timedelta(hours=timezone_)
+        if utc_datetime < latest_datetime:
+            await ctx.respond(embed=generate_embed(
+                ctx=ctx,
+                color="WARN",
+                title="僅能將資料新增至尾端"
+            ))
+            return None
+        if utc_datetime > datetime.utcnow():
+            await ctx.respond(embed=generate_embed(
+                ctx=ctx,
+                color="WARN",
+                title="不可將資料新增至未來"
+            ))
+            return None
+    return utc_datetime
+
 class SleepSleepHistory(GroupCog):
     group = SlashCommandGroup(
         name="ssh",
@@ -193,11 +232,23 @@ class SleepSleepHistory(GroupCog):
     )
     async def ohiyo(
         self,
-        ctx: ApplicationContext
+        ctx: ApplicationContext,
+        time_: Option(str, name="時間", description="時間 格式為HH:MM:SS", required=False),
+        date_: Option(str, name="日期", description="日期 格式為YYYY-MM-DD", required=False),
+        timezone_: Option(float, name="時區", description="時區", default=8, min_value=-12, max_value=12),
     ):
         data = await read_user_data(ctx)
         latest = data[-1]
-        time_delta = datetime.utcnow() - datetime.fromtimestamp(latest.timestamp)
+        latest_datetime = datetime.fromtimestamp(latest.timestamp)
+        utc_datetime = await get_utc_datetime(
+            ctx=ctx,
+            latest_datetime=latest_datetime,
+            time_=time_,
+            date_=date_,
+            timezone_=timezone_
+        )
+        if utc_datetime is None: return
+        time_delta = utc_datetime - latest_datetime
         hours, minutes, seconds = format_delta_time(
             int(time_delta.total_seconds()))
 
@@ -219,6 +270,7 @@ class SleepSleepHistory(GroupCog):
             type="WAKE_UP",
             month=n_month,
             day=n_day,
+            timestamp=int(utc_datetime.timestamp())
         ))
         await write_user_data(ctx=ctx, data=data)
         await ctx.respond(embed=generate_embed(
@@ -235,11 +287,23 @@ class SleepSleepHistory(GroupCog):
     )
     async def oyasumi(
         self,
-        ctx: ApplicationContext
+        ctx: ApplicationContext,
+        time_: Option(str, name="時間", description="時間 格式為HH:MM:SS", required=False),
+        date_: Option(str, name="日期", description="日期 格式為YYYY-MM-DD", required=False),
+        timezone_: Option(float, name="時區", description="時區", default=8, min_value=-12, max_value=12),
     ):
         data = await read_user_data(ctx)
         latest = data[-1]
-        time_delta = datetime.utcnow() - datetime.fromtimestamp(latest.timestamp)
+        latest_datetime = datetime.fromtimestamp(latest.timestamp)
+        utc_datetime = await get_utc_datetime(
+            ctx=ctx,
+            latest_datetime=latest_datetime,
+            time_=time_,
+            date_=date_,
+            timezone_=timezone_
+        )
+        if utc_datetime is None: return
+        time_delta = utc_datetime - latest_datetime
         hours, minutes, seconds = format_delta_time(
             int(time_delta.total_seconds()))
 
@@ -266,56 +330,56 @@ class SleepSleepHistory(GroupCog):
             description=f"你結束了你的 {latest.year}年 {latest.month} 月 {latest.day} 日，共 {hours} 小時 {minutes} 分 {seconds} 秒。"
         ))
 
-    @group.command(
-        name="insert",
-        description="登出舊的一天。",
-        checks=[check_signed(sign_up)],
-    )
-    async def insert(
-        self,
-        ctx: ApplicationContext,
-        start_time: Option(str, name="起始時間", description="起床時的時間 格式為HH:MM:SS", required=True),
-        end_time: Option(str, name="結束時間", description="睡覺時的時間 格式為HH:MM:SS", required=True),
-        start_date: Option(str, name="起始日期", description="起床時的日期 格式為YYYY-MM-DD", required=False),
-        end_date: Option(str, name="結束日期", description="睡覺時的日期 格式為YYYY-MM-DD", required=False),
-        time_zone: Option(float, name="時區", description="時區", default=8, min_value=12, max_value=12)
-    ):
-        try:
-            now_time = datetime.now()
-            start_date = now_time.date() if start_date is None else date.fromisoformat(start_date)
-            start_time = time.fromisoformat(start_time)
-            end_date = now_time.date() if end_date is None else date.fromisoformat(end_date)
-            end_time = time.fromisoformat(end_time)
-            time_delta = timedelta(hours=time_zone)
+    # @group.command(
+    #     name="insert",
+    #     description="登出舊的一天。",
+    #     checks=[check_signed(sign_up)],
+    # )
+    # async def insert(
+    #     self,
+    #     ctx: ApplicationContext,
+    #     start_time: Option(str, name="起始時間", description="起床時的時間 格式為HH:MM:SS", required=True),
+    #     end_time: Option(str, name="結束時間", description="睡覺時的時間 格式為HH:MM:SS", required=True),
+    #     start_date: Option(str, name="起始日期", description="起床時的日期 格式為YYYY-MM-DD", required=False),
+    #     end_date: Option(str, name="結束日期", description="睡覺時的日期 格式為YYYY-MM-DD", required=False),
+    #     time_zone: Option(float, name="時區", description="時區", default=8, min_value=12, max_value=12)
+    # ):
+    #     try:
+    #         now_time = datetime.now()
+    #         start_date = now_time.date() if start_date is None else date.fromisoformat(start_date)
+    #         start_time = time.fromisoformat(start_time)
+    #         end_date = now_time.date() if end_date is None else date.fromisoformat(end_date)
+    #         end_time = time.fromisoformat(end_time)
+    #         time_delta = timedelta(hours=time_zone)
 
-            start_datetime = datetime.combine(start_date, start_time) - time_delta
-            end_datetime = datetime.combine(end_date, end_time) - time_delta
-            assert end_datetime > start_datetime
-            assert end_datetime < now_time
+    #         start_datetime = datetime.combine(start_date, start_time) - time_delta
+    #         end_datetime = datetime.combine(end_date, end_time) - time_delta
+    #         assert end_datetime > start_datetime
+    #         assert end_datetime < now_time - time_delta
 
-            data = await read_user_data(ctx)
-            data.append(SSHData(
-                type="WAKE_UP",
-                timestamp=int(start_datetime.timestamp())
-            ))
-            data.append(SSHData(
-                type="SLEEP",
-                timestamp=int(end_datetime.timestamp())
-            ))
-            data = rebuild(data)
-            await write_user_data(ctx=ctx, data=data)
-            await ctx.respond(embed=generate_embed(
-                ctx=ctx,
-                color="INFO",
-                title="新增成功",
-            ))
-        except:
-            await ctx.respond(embed=generate_embed(
-                ctx=ctx,
-                color="WARN",
-                title="格式錯誤",
-                description="輸入格式錯誤，請重新檢查。"
-            ))
+    #         data = await read_user_data(ctx)
+    #         data.append(SSHData(
+    #             type="WAKE_UP",
+    #             timestamp=int(start_datetime.timestamp())
+    #         ))
+    #         data.append(SSHData(
+    #             type="SLEEP",
+    #             timestamp=int(end_datetime.timestamp())
+    #         ))
+    #         data = rebuild(data)
+    #         await write_user_data(ctx=ctx, data=data)
+    #         await ctx.respond(embed=generate_embed(
+    #             ctx=ctx,
+    #             color="INFO",
+    #             title="新增成功",
+    #         ))
+    #     except:
+    #         await ctx.respond(embed=generate_embed(
+    #             ctx=ctx,
+    #             color="WARN",
+    #             title="格式錯誤",
+    #             description="輸入格式錯誤，請重新檢查。"
+    #         ))
 
     @group.command(
         name="current",
