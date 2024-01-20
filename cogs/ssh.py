@@ -148,7 +148,8 @@ def generate_embed(
     ctx: ApplicationContext,
     color: Union[int, COLOR_TYPE],
     title: str,
-    description: str = ""
+    description: str = "",
+    footer: Optional[str] = None,
 ) -> Embed:
     embed = Embed(
         colour=color if type(color) == int else COLOR_MAP.get(color, 0),
@@ -157,6 +158,8 @@ def generate_embed(
         timestamp=datetime.now(timezone.utc)
     )
     embed.set_thumbnail(url=ctx.author.display_avatar.url)
+    if footer is not None:
+        embed.set_footer(footer)
     return embed
 
 
@@ -277,7 +280,8 @@ class SleepSleepHistory(GroupCog):
             ctx=ctx,
             color="WAKE_UP",
             title=choice(RESPONSE_MESSAGE["WAKE_UP"]),
-            description=f"今天是你的 {YEARS[-1]} 年 {n_month} 月 {n_day} 日，你的昨天已離去 {hours} 小時 {minutes} 分 {seconds} 秒之久。"
+            description=f"今天是你的 {YEARS[-1]} 年 {n_month} 月 {n_day} 日，你的昨天已離去 {hours} 小時 {minutes} 分 {seconds} 秒之久。",
+            footer=f"紀錄時間 <t:{int((utc_datetime + timedelta(hours=timezone_)).timestamp())}:F>",
         ))
 
     @group.command(
@@ -328,7 +332,8 @@ class SleepSleepHistory(GroupCog):
             ctx=ctx,
             color="SLEEP",
             title=choice(RESPONSE_MESSAGE["SLEEP"]),
-            description=f"你結束了你的 {latest.year}年 {latest.month} 月 {latest.day} 日，共 {hours} 小時 {minutes} 分 {seconds} 秒。"
+            description=f"你結束了你的 {latest.year}年 {latest.month} 月 {latest.day} 日，共 {hours} 小時 {minutes} 分 {seconds} 秒。",
+            footer=f"紀錄時間 <t:{int((utc_datetime + timedelta(hours=timezone_)).timestamp())}:F>",
         ))
 
     # @group.command(
