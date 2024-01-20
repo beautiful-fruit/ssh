@@ -321,6 +321,7 @@ class SleepSleepHistory(GroupCog):
             year=latest.year,
             month=latest.month,
             day=latest.day,
+            timestamp=int(utc_datetime.timestamp())
         ))
         await write_user_data(ctx=ctx, data=data)
         await ctx.respond(embed=generate_embed(
