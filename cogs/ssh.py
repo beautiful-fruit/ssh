@@ -18,12 +18,13 @@ from datetime import (
     timedelta,
     timezone,
 )
+from hashlib import sha256
 from io import BytesIO
 from os.path import isfile, join
 from random import choice
 from typing import Literal, Optional, Union
 
-from config import DATA_DIR
+from config import DATA_DIR, TIMEZONE
 
 from .base import GroupCog
 
@@ -71,6 +72,13 @@ class SSHData(BaseModel):
     timestamp: int = Field(
         default_factory=lambda: int(datetime.utcnow().timestamp())
     )
+
+    def get_hash(self) -> str:
+        return sha256(dumps(self.model_dump())).hexdigest()
+
+    @property
+    def date(self) -> str:
+        return f"{self.year}年 {self.month} 月 {self.day} 日"
 
 
 def get_fbnc_num(n: int) -> int:
@@ -220,15 +228,16 @@ class SleepSleepHistory(GroupCog):
             await ctx.respond("你已經註冊過了。")
             return
 
+        new_data = SSHData(type="WAKE_UP")
         await write_user_data(
             ctx=ctx,
-            data=[SSHData(type="WAKE_UP").model_dump()]
+            data=[new_data.model_dump()]
         )
         await ctx.respond(embed=generate_embed(
             ctx=ctx,
             color="SIGN_UP",
             title="註冊成功",
-            description=f"今天是你的 {YEARS[-1]}年 1 月 1 日。",
+            description=f"今天是你的 {new_data.date}。",
         ))
 
     @group.command(
@@ -273,18 +282,19 @@ class SleepSleepHistory(GroupCog):
         if n_day > get_fbnc_num(n_month):
             n_month += 1
             n_day = 1
-        data.append(SSHData(
+        new_data = SSHData(
             type="WAKE_UP",
             month=n_month,
             day=n_day,
             timestamp=int(utc_datetime.timestamp())
-        ))
+        )
+        data.append(new_data)
         await write_user_data(ctx=ctx, data=data)
         await ctx.respond(embed=generate_embed(
             ctx=ctx,
             color="WAKE_UP",
             title=choice(RESPONSE_MESSAGE["WAKE_UP"]),
-            description=f"今天是你的 {YEARS[-1]} 年 {n_month} 月 {n_day} 日，你的昨天已離去 {hours} 小時 {minutes} 分 {seconds} 秒之久。",
+            description=f"今天是你的 {new_data.date}，你的昨天已離去 {hours} 小時 {minutes} 分 {seconds} 秒之久。",
             fields={
                 "紀錄時間": f"<t:{int((utc_datetime + timedelta(hours=timezone_)).timestamp())}:F>"
             },
@@ -339,62 +349,11 @@ class SleepSleepHistory(GroupCog):
             ctx=ctx,
             color="SLEEP",
             title=choice(RESPONSE_MESSAGE["SLEEP"]),
-            description=f"你結束了你的 {latest.year}年 {latest.month} 月 {latest.day} 日，共 {hours} 小時 {minutes} 分 {seconds} 秒。",
+            description=f"你結束了你的 {latest.date}，共 {hours} 小時 {minutes} 分 {seconds} 秒。",
             fields={
                 "紀錄時間": f"<t:{int((utc_datetime + timedelta(hours=timezone_)).timestamp())}:F>"
             },
         ))
-
-    # @group.command(
-    #     name="insert",
-    #     description="登出舊的一天。",
-    #     checks=[check_signed(sign_up)],
-    # )
-    # async def insert(
-    #     self,
-    #     ctx: ApplicationContext,
-    #     start_time: Option(str, name="起始時間", description="起床時的時間 格式為HH:MM:SS", required=True),
-    #     end_time: Option(str, name="結束時間", description="睡覺時的時間 格式為HH:MM:SS", required=True),
-    #     start_date: Option(str, name="起始日期", description="起床時的日期 格式為YYYY-MM-DD", required=False),
-    #     end_date: Option(str, name="結束日期", description="睡覺時的日期 格式為YYYY-MM-DD", required=False),
-    #     time_zone: Option(float, name="時區", description="時區", default=8, min_value=12, max_value=12)
-    # ):
-    #     try:
-    #         now_time = datetime.now()
-    #         start_date = now_time.date() if start_date is None else date.fromisoformat(start_date)
-    #         start_time = time.fromisoformat(start_time)
-    #         end_date = now_time.date() if end_date is None else date.fromisoformat(end_date)
-    #         end_time = time.fromisoformat(end_time)
-    #         time_delta = timedelta(hours=time_zone)
-
-    #         start_datetime = datetime.combine(start_date, start_time) - time_delta
-    #         end_datetime = datetime.combine(end_date, end_time) - time_delta
-    #         assert end_datetime > start_datetime
-    #         assert end_datetime < now_time - time_delta
-
-    #         data = await read_user_data(ctx)
-    #         data.append(SSHData(
-    #             type="WAKE_UP",
-    #             timestamp=int(start_datetime.timestamp())
-    #         ))
-    #         data.append(SSHData(
-    #             type="SLEEP",
-    #             timestamp=int(end_datetime.timestamp())
-    #         ))
-    #         data = rebuild(data)
-    #         await write_user_data(ctx=ctx, data=data)
-    #         await ctx.respond(embed=generate_embed(
-    #             ctx=ctx,
-    #             color="INFO",
-    #             title="新增成功",
-    #         ))
-    #     except:
-    #         await ctx.respond(embed=generate_embed(
-    #             ctx=ctx,
-    #             color="WARN",
-    #             title="格式錯誤",
-    #             description="輸入格式錯誤，請重新檢查。"
-    #         ))
 
     @group.command(
         name="current",
@@ -416,14 +375,14 @@ class SleepSleepHistory(GroupCog):
                 ctx=ctx,
                 color="INFO",
                 title=choice(RESPONSE_MESSAGE["STATUS_WAKE_UP"]),
-                description=f"現在是 {latest.year}年 {latest.month} 月 {latest.day} 日 {hours} 時 {minutes} 分 {seconds} 秒。"
+                description=f"現在是 {latest.date} {hours} 時 {minutes} 分 {seconds} 秒。"
             )
         else:
             embed = generate_embed(
                 ctx=ctx,
                 color="INFO",
                 title=choice(RESPONSE_MESSAGE["STATUS_SLEEP"]),
-                description=f"你離開 {latest.year}年 {latest.month} 月 {latest.day} 日 已有 {hours} 時 {minutes} 分 {seconds} 秒之久。"
+                description=f"你離開 {latest.date} 已有 {hours} 時 {minutes} 分 {seconds} 秒之久。"
             )
         await ctx.respond(embed=embed)
 
@@ -445,6 +404,36 @@ class SleepSleepHistory(GroupCog):
         ))
 
     @group.command(
+        name="log",
+        description="查看記錄檔",
+        checks=[check_signed(sign_up)],
+    )
+    async def get_logs(
+        self,
+        ctx: ApplicationContext,
+        page: Option(int, name="頁碼", description="頁碼", default=1, min_value=1),
+    ):
+        def context_generator(data: SSHData) -> str:
+            delta = timedelta(hours=TIMEZONE)
+            result = [
+                "```",
+                f"Hash: {data.get_hash()[:6]}",
+                f"Time: {(datetime.fromtimestamp(data.timestamp, tz=timezone(delta)) + delta).isoformat()}",
+                "```",
+            ]
+            return "\n".join(result)
+        data = await read_user_data(ctx=ctx)
+        page = 10 * (page - 1)
+        await ctx.respond(embed=generate_embed(
+            ctx=ctx,
+            color="INFO",
+            title="你的睡覺歷",
+            fields={
+                d.date: context_generator(d) for d in data[-1 - page:-11 - page:-1]
+            }
+        ))
+
+    @group.command(
         name="dump",
         description="取得自己的紀錄檔",
         checks=[check_signed(sign_up)],
@@ -457,6 +446,17 @@ class SleepSleepHistory(GroupCog):
         async with async_open(file_path, "rb") as f:
             context = await f.read()
         await ctx.respond(file=File(BytesIO(context), f"{ctx.author.display_name}.json"))
+    
+    @group.command(
+        name="modify",
+        description="修改記錄",
+        checks=[check_signed(sign_up)],
+    )
+    async def modify(
+        self,
+        ctx: ApplicationContext
+    ):
+        pass
 
 
 def setup(bot: Bot):
