@@ -369,7 +369,7 @@ class SleepSleepHistory(GroupCog):
     ):
         author = ctx.author
         if user is not None:
-            author = ctx.guild.get_member(int(user)) or ctx.author
+            author = ctx.guild.get_member(int(user)) or await ctx.guild.fetch_member(int(user)) or ctx.author
             print(author)
         print(author, user)
         data = await read_user_data(ctx, author)
