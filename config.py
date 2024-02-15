@@ -10,13 +10,7 @@ class Config(BaseModel):
     token: str
     data_dir: str = "data"
     managers: list[int] = []
-    tz: timezone = timezone(timedelta(hours=8))
-
-    @field_validator("tz", mode="before")
-    def valid_timezone(cls, v):
-        if type(v) == timezone:
-            return v
-        return timezone(timedelta(hours=v))
+    tz: float = 8
 
 if not isfile("config.json"):
     token = input("Discord Token: ")
@@ -25,7 +19,7 @@ if not isfile("config.json"):
             "token": token,
             "data_dir": "data",
             "managers": [],
-            "timezone": 8,
+            "tz": 8,
         }).model_dump(), option=OPT_INDENT_2))
 
 with open("config.json", "rb") as config_file:
