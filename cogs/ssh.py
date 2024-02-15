@@ -363,7 +363,7 @@ class SleepSleepHistory(GroupCog):
     async def current(
         self,
         ctx: ApplicationContext,
-        user: Option(int, name="使用者ID", description="使用者ID", required=False)
+        user: Option(int, name="使用者id", description="使用者ID", required=False)
     ):
         try:
             if user is not None:
