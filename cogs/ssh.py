@@ -4,6 +4,7 @@ from discord import (
     Bot,
     Embed,
     File,
+    Member,
     Option,
     SlashCommand,
     SlashCommandGroup,
@@ -89,12 +90,12 @@ def get_fbnc_num(n: int) -> int:
     return result
 
 
-def get_user_file(ctx: ApplicationContext) -> str:
-    return join(DATA_DIR, f"{ctx.author.id}.json")
+def get_user_file(user_id: int) -> str:
+    return join(DATA_DIR, f"{user_id}.json")
 
 
-async def read_user_data(ctx: ApplicationContext) -> list[SSHData]:
-    file_path = get_user_file(ctx)
+async def read_user_data(ctx: ApplicationContext, member: Optional[Member] = None) -> list[SSHData]:
+    file_path = get_user_file(member.id if member else ctx.author.id)
     if not isfile(file_path):
         return []
     async with async_open(file_path, "rb") as f:
@@ -103,7 +104,7 @@ async def read_user_data(ctx: ApplicationContext) -> list[SSHData]:
 
 
 async def write_user_data(ctx: ApplicationContext, data: list[SSHData]) -> None:
-    file_path = get_user_file(ctx)
+    file_path = get_user_file(ctx.author.id)
     async with async_open(file_path, "wb") as f:
         await f.write(dumps(
             data,
@@ -147,7 +148,7 @@ def format_delta_time(delta: int) -> tuple[str, str, str]:
 
 def check_signed(sign_up_command: SlashCommand) -> bool:
     async def wrap(ctx: ApplicationContext) -> bool:
-        if isfile(get_user_file(ctx)):
+        if isfile(get_user_file(ctx.author.id)):
             return True
         await ctx.respond(f"請先使用{sign_up_command.mention}進行註冊。")
         return False
@@ -160,6 +161,7 @@ def generate_embed(
     title: str,
     description: str = "",
     fields: Optional[dict[str, str]] = {},
+    member: Optional[Member] = None
 ) -> Embed:
     embed = Embed(
         colour=color if type(color) == int else COLOR_MAP.get(color, 0),
@@ -167,7 +169,7 @@ def generate_embed(
         description=description,
         timestamp=datetime.now(timezone.utc)
     )
-    embed.set_thumbnail(url=ctx.author.display_avatar.url)
+    embed.set_thumbnail(url=member.display_avatar if member else ctx.author.display_avatar.url)
     for key, value in fields.items():
         embed.add_field(name=key, value=value, inline=False)
     return embed
@@ -224,7 +226,7 @@ class SleepSleepHistory(GroupCog):
         description="將今天註冊為起始日。"
     )
     async def sign_up(self, ctx: ApplicationContext):
-        if isfile(get_user_file(ctx)):
+        if isfile(get_user_file(ctx.author.id)):
             await ctx.respond("你已經註冊過了。")
             return
 
@@ -365,11 +367,10 @@ class SleepSleepHistory(GroupCog):
         ctx: ApplicationContext,
         user: Option(str, name="使用者id", description="使用者ID", required=False)
     ):
-        # try:
+        author = ctx.author
         if user is not None:
-            ctx.author = ctx.guild.get_member(int(user)) or ctx.author
-        # except: pass
-        data = await read_user_data(ctx)
+            author = ctx.guild.get_member(int(user)) or ctx.author
+        data = await read_user_data(ctx, author)
         latest = data[-1]
         time_delta = datetime.utcnow() - datetime.fromtimestamp(latest.timestamp)
         hours, minutes, seconds = format_delta_time(
@@ -380,14 +381,16 @@ class SleepSleepHistory(GroupCog):
                 ctx=ctx,
                 color="INFO",
                 title=choice(RESPONSE_MESSAGE["STATUS_WAKE_UP"]),
-                description=f"現在是 {latest.date} {hours} 時 {minutes} 分 {seconds} 秒。"
+                description=f"現在是 {latest.date} {hours} 時 {minutes} 分 {seconds} 秒。",
+                member=author
             )
         else:
             embed = generate_embed(
                 ctx=ctx,
                 color="INFO",
                 title=choice(RESPONSE_MESSAGE["STATUS_SLEEP"]),
-                description=f"你離開 {latest.date} 已有 {hours} 時 {minutes} 分 {seconds} 秒之久。"
+                description=f"你離開 {latest.date} 已有 {hours} 時 {minutes} 分 {seconds} 秒之久。",
+                member=author
             )
         await ctx.respond(embed=embed)
 
@@ -447,7 +450,7 @@ class SleepSleepHistory(GroupCog):
         self,
         ctx: ApplicationContext
     ):
-        file_path = get_user_file(ctx)
+        file_path = get_user_file(ctx.author.id)
         async with async_open(file_path, "rb") as f:
             context = await f.read()
         await ctx.respond(file=File(BytesIO(context), f"{ctx.author.display_name}.json"))
