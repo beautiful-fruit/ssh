@@ -363,11 +363,11 @@ class SleepSleepHistory(GroupCog):
     async def current(
         self,
         ctx: ApplicationContext,
-        user: Option(int, name="使用者id", description="使用者ID", required=False)
+        user: Option(str, name="使用者id", description="使用者ID", required=False)
     ):
         try:
             if user is not None:
-                ctx.author = ctx.guild.get_member(user)
+                ctx.author = ctx.guild.get_member(int(user)) or ctx.author
         except: pass
         data = await read_user_data(ctx)
         latest = data[-1]
