@@ -362,8 +362,13 @@ class SleepSleepHistory(GroupCog):
     )
     async def current(
         self,
-        ctx: ApplicationContext
+        ctx: ApplicationContext,
+        user: Option(int, name="使用者ID", description="使用者ID", required=False)
     ):
+        try:
+            if user is not None:
+                ctx.author = ctx.guild.get_member(user)
+        except: pass
         data = await read_user_data(ctx)
         latest = data[-1]
         time_delta = datetime.utcnow() - datetime.fromtimestamp(latest.timestamp)
@@ -403,35 +408,35 @@ class SleepSleepHistory(GroupCog):
             title="已取消上一筆紀錄",
         ))
 
-    @group.command(
-        name="log",
-        description="查看記錄檔",
-        checks=[check_signed(sign_up)],
-    )
-    async def get_logs(
-        self,
-        ctx: ApplicationContext,
-        page: Option(int, name="頁碼", description="頁碼", default=1, min_value=1),
-    ):
-        def context_generator(data: SSHData) -> str:
-            delta = timedelta(hours=TIMEZONE)
-            result = [
-                "```",
-                f"Hash: {data.get_hash()[:6]}",
-                f"Time: {(datetime.fromtimestamp(data.timestamp, tz=timezone(delta)) + delta).isoformat()}",
-                "```",
-            ]
-            return "\n".join(result)
-        data = await read_user_data(ctx=ctx)
-        page = 10 * (page - 1)
-        await ctx.respond(embed=generate_embed(
-            ctx=ctx,
-            color="INFO",
-            title="你的睡覺歷",
-            fields={
-                d.date: context_generator(d) for d in data[-1 - page:-11 - page:-1]
-            }
-        ))
+    # @group.command(
+    #     name="log",
+    #     description="查看記錄檔",
+    #     checks=[check_signed(sign_up)],
+    # )
+    # async def get_logs(
+    #     self,
+    #     ctx: ApplicationContext,
+    #     page: Option(int, name="頁碼", description="頁碼", default=1, min_value=1),
+    # ):
+    #     def context_generator(data: SSHData) -> str:
+    #         delta = timedelta(hours=TIMEZONE)
+    #         result = [
+    #             "```",
+    #             f"Hash: {data.get_hash()[:6]}",
+    #             f"Time: {(datetime.fromtimestamp(data.timestamp, tz=timezone(delta)) + delta).isoformat()}",
+    #             "```",
+    #         ]
+    #         return "\n".join(result)
+    #     data = await read_user_data(ctx=ctx)
+    #     page = 10 * (page - 1)
+    #     await ctx.respond(embed=generate_embed(
+    #         ctx=ctx,
+    #         color="INFO",
+    #         title="你的睡覺歷",
+    #         fields={
+    #             d.date: context_generator(d) for d in data[-1 - page:-11 - page:-1]
+    #         }
+    #     ))
 
     @group.command(
         name="dump",
