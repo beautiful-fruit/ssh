@@ -30,7 +30,8 @@ from config import DATA_DIR, TIMEZONE
 from .base import GroupCog
 
 YEAR_DATA = {
-    "元": 1704038400
+    "元": 1704038400,
+    "Co": 1708735983,
 }
 YEARS = list(YEAR_DATA.keys())
 YEARS.sort(key=lambda k: YEAR_DATA[k])
