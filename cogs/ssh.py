@@ -32,6 +32,7 @@ from .base import GroupCog
 YEAR_DATA = {
     "元": 1704038400,
     "Co": 1708735983,
+    "高": 1709035411,
 }
 YEARS = list(YEAR_DATA.keys())
 YEARS.sort(key=lambda k: YEAR_DATA[k])
