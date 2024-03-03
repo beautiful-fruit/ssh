@@ -188,7 +188,7 @@ async def get_utc_datetime(
         utc_datetime = datetime.utcnow()
     else:
         try:
-            time_ = time_.replace("\\:, ":")
+            time_ = time_.replace("\\:", ":")
             time_ = time.fromisoformat(time_)
             date_ = datetime.now().date() if date_ is None else date.fromisoformat(date_)
         except:
