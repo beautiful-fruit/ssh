@@ -14,7 +14,7 @@ async def on_ready():
     print(f"{bot.user.display_name} has connected to discord.")
 
 
-@bot.slash_command("call")
+@bot.slash_command(name="call")
 async def call(ctx: ApplicationContext):
     try:
         _, w = await open_connection("100.0.0.110", 8888, timeout=1)
