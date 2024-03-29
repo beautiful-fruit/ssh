@@ -17,7 +17,7 @@ async def on_ready():
 @bot.slash_command(name="call")
 async def call(ctx: ApplicationContext):
     try:
-        _, w = await open_connection("100.0.0.110", 8888, timeout=1)
+        _, w = await open_connection("192.168.10.10", 8888, timeout=1)
         w.close()
         await ctx.respond("Send success.")
     except:
